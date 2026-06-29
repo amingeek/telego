@@ -1,13 +1,17 @@
 package router
 
 import (
+	"telego/config"
+	adminHandler "telego/handler/admin"
+	authHandler "telego/handler/auth"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"telego/config"
-	authHandler "telego/handler/auth"
 )
 
 func SetUpRouter(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
+	authHandler.SetConfig(cfg)
+
 	api := r.Group("/api")
 
 	api.Use(gin.Recovery())
@@ -18,9 +22,15 @@ func SetUpRouter(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		})
 	})
 
-	auth := r.Group("/auth")
+	auth := api.Group("/auth")
 	{
 		auth.POST("/register", authHandler.Register)
+		auth.POST("/login", authHandler.Login)
+	}
+
+	admin := api.Group("/admin")
+	{
+		admin.GET("/users", adminHandler.GetAllUsers)
 	}
 
 }

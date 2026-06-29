@@ -5,6 +5,7 @@ import (
 	"log"
 	config "telego/config"
 	"telego/database"
+	"telego/models"
 	router "telego/router"
 
 	"github.com/gin-gonic/gin"
@@ -20,9 +21,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db.AutoMigrate()
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		log.Fatalf("auto migration failed: %v", err)
+	}
 	server := gin.Default()
+
 	router.SetUpRouter(server, db, cfg)
+
 	port := fmt.Sprintf(":%s", cfg.AppPort)
 
 	fmt.Println("Server is running on ", port)

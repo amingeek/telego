@@ -7,21 +7,34 @@ import (
 	"time"
 
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
+var DB *gorm.DB
+
 func Connect(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Tehran",
-		cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode,
-	)
+	var dialector gorm.Dialector
+
+	switch cfg.DBDriver {
+	case "sqlite3":
+		dialector = sqlite.Open(cfg.DBPath)
+	case "postgres":
+		dsn := fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Tehran",
+			cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode,
+		)
+		dialector = postgres.Open(dsn)
+	default:
+		return nil, fmt.Errorf("unsupported database driver: %s", cfg.DBDriver)
+	}
 
 	var db *gorm.DB
 	var err error
 
 	for i := 0; i < 5; i++ {
-		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		db, err = gorm.Open(dialector, &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Warn),
 		})
 		if err == nil {
@@ -44,5 +57,6 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(25)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
+	DB = db
 	return db, nil
 }
